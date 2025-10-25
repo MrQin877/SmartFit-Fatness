@@ -47,6 +47,10 @@ android {
 }
 
 dependencies {
+    implementation("androidx.activity:activity-ktx:1.9.2")
+
+    //--- System UI Controller
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
 
     // --- Base Jetpack / Compose (from version catalog) ---
     implementation(libs.androidx.core.ktx)

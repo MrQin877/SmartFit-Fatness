@@ -38,46 +38,42 @@ import androidx.compose.material.icons.automirrored.filled.List
 
 
 @Composable
-fun HomeScreen(navController: NavHostController, appContainer: AppContainer) {
+fun HomeScreen(
+    navController: NavHostController,
+    appContainer: AppContainer,
+    contentPadding: PaddingValues = PaddingValues(0.dp) // <-- NEW
+) {
     var loaded by remember { mutableStateOf(false) }
 
-    // trigger smooth appearance when entering screen
     LaunchedEffect(Unit) {
         delay(300)
         loaded = true
     }
 
-    Scaffold(
-        bottomBar = { BottomNavBar(navController) },
-        modifier = Modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(Modifier.height(8.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)            // <-- respect top-level scaffold padding
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(Modifier.height(8.dp))
 
-            AnimatedVisibility(visible = loaded) {
-                ProfileGreeting()
-            }
+        AnimatedVisibility(visible = loaded) { ProfileGreeting() }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
-            AnimatedVisibility(visible = loaded) {
-                DailyActivityCard(steps = 6200, stepTarget = 10000, calories = 320, calorieTarget = 500)
-            }
+        AnimatedVisibility(visible = loaded) {
+            DailyActivityCard(steps = 11000, stepTarget = 16000, calories = 440, calorieTarget = 680)
+        }
 
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
+        AnimatedVisibility(visible = loaded) {
+            WorkoutSummaryCard(workouts = listOf("Indoor Walk", "Midnight Running"))
+        }
 
-            AnimatedVisibility(visible = loaded) {
-                WorkoutSummaryCard(workouts = listOf("Morning Yoga", "Evening Run"))
-            }
-
-            Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(16.dp))
 
             AnimatedVisibility(visible = loaded) {
                 TipsCard(
@@ -92,7 +88,7 @@ fun HomeScreen(navController: NavHostController, appContainer: AppContainer) {
             Spacer(Modifier.height(80.dp))
         }
     }
-}
+
 
 @Composable
 fun ProfileGreeting() {
@@ -227,7 +223,7 @@ fun WorkoutSummaryCard(workouts: List<String>, onViewAll: (() -> Unit)? = null) 
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Box(
                         Modifier
@@ -235,7 +231,7 @@ fun WorkoutSummaryCard(workouts: List<String>, onViewAll: (() -> Unit)? = null) 
                             .padding(12.dp),
                         contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(workout, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(workout, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
@@ -274,7 +270,8 @@ fun TipsCard(tips: List<String>, onViewAll: (() -> Unit)? = null) {
                     Text(
                         text = "• $it",
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
             }
@@ -328,8 +325,13 @@ fun PreviewHomeScreen() {
     val appContainer = remember { AppContainer(context.applicationContext as Application) }
 
     MaterialTheme {
-        HomeScreen(navController = navController, appContainer = appContainer)
+        HomeScreen(
+            navController = navController,
+            appContainer = appContainer,
+            contentPadding = PaddingValues(0.dp) // preview padding
+        )
     }
 }
+
 
 
