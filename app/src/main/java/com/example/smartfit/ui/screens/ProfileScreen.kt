@@ -11,24 +11,26 @@ import androidx.navigation.NavHostController
 import com.example.smartfit.AppContainer
 import com.example.smartfit.data.datastore.UserPreferences
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun ProfileScreen(navController: NavHostController, appContainer: AppContainer) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Load current preferences from DataStore
+    // Load preferences from DataStore
     val themeMode by UserPreferences.getTheme(context).collectAsState(initial = "SYSTEM")
     val stepGoal by UserPreferences.getStepGoal(context).collectAsState(initial = 8000)
 
-    // Local state for UI interaction
     var goal by remember { mutableStateOf(stepGoal.toFloat()) }
     var isDarkTheme by remember { mutableStateOf(themeMode == "DARK") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp)
+            .padding(top = 16.dp)
+            .navigationBarsPadding(), // ✅ keeps within safe area
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
@@ -66,22 +68,29 @@ fun ProfileScreen(navController: NavHostController, appContainer: AppContainer) 
             )
         }
 
-        // 🚪 Logout button at bottom
-        Button(
-            onClick = {
-                scope.launch {
-                    UserPreferences.setLoggedIn(context, false)
-                }
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
-                }
-            },
+        // 🚪 Logout button with safe positioning
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                .padding(bottom = 100.dp) // ✅ lifts above bottom nav bar
         ) {
-            Text("Logout", color = MaterialTheme.colorScheme.onError)
+            Button(
+                onClick = {
+                    scope.launch {
+                        UserPreferences.setLoggedIn(context, false)
+                    }
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Logout", color = MaterialTheme.colorScheme.onError)
+            }
         }
     }
 }

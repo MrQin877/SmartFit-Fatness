@@ -1,8 +1,13 @@
 package com.example.smartfit.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -13,6 +18,7 @@ import com.example.smartfit.AppContainer
 import com.example.smartfit.data.datastore.dataStore
 import com.example.smartfit.ui.screens.*
 import kotlinx.coroutines.flow.map
+
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -34,13 +40,33 @@ fun NavGraph(appContainer: AppContainer) {
     val context = LocalContext.current
     val dataStore = context.dataStore
 
-    val isLoggedIn by dataStore.data
-        .map { it[booleanPreferencesKey("is_logged_in")] ?: false }
-        .collectAsState(initial = false)
+    // Collect DataStore prefs safely
+    val prefsState = dataStore.data.collectAsState(initial = null)
+    val prefs = prefsState.value
 
-    val startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
 
-    // Scaffold only for screens that should show bottom bar
+    // Show loading screen until prefs are loaded
+    if (prefs == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    // Once loaded, extract stored flags
+    val isOnboarded = prefs[booleanPreferencesKey("is_onboarded")] ?: false
+    val isLoggedIn = prefs[booleanPreferencesKey("is_logged_in")] ?: false
+
+    val startDestination = when {
+        !isOnboarded -> Screen.Onboarding.route
+        !isLoggedIn -> Screen.Login.route
+        else -> Screen.Home.route
+    }
+
+    // ✅ Scaffold for screens that use bottom bar
     Scaffold(
         bottomBar = {
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -64,6 +90,7 @@ fun NavGraph(appContainer: AppContainer) {
     }
 }
 
+
 @Composable
 fun NavGraphContent(
     navController: NavHostController,
@@ -75,9 +102,9 @@ fun NavGraphContent(
         navController = navController,
         startDestination = startDestination
     ) {
+        composable(Screen.Onboarding.route) { OnboardingScreen(navController, appContainer) }
         composable(Screen.Login.route) { LoginScreen(navController, appContainer) }
         composable(Screen.SignUp.route) { SignUpScreen(navController, appContainer) }
-        composable(Screen.Onboarding.route) { OnboardingScreen(navController, appContainer) }
         composable(Screen.Home.route) { HomeScreen(navController, appContainer) }
         composable(Screen.Logs.route) { LogsScreen(navController, appContainer) }
         composable(
