@@ -1,7 +1,10 @@
 package com.example.smartfit.ui.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
@@ -31,14 +34,47 @@ fun NavGraph(appContainer: AppContainer) {
     val context = LocalContext.current
     val dataStore = context.dataStore
 
-    // Observe login state from DataStore
     val isLoggedIn by dataStore.data
         .map { it[booleanPreferencesKey("is_logged_in")] ?: false }
         .collectAsState(initial = false)
 
     val startDestination = if (isLoggedIn) Screen.Home.route else Screen.Login.route
 
-    NavHost(navController = navController, startDestination = startDestination) {
+    // Scaffold only for screens that should show bottom bar
+    Scaffold(
+        bottomBar = {
+            val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+            if (currentRoute in listOf(
+                    Screen.Home.route,
+                    Screen.Logs.route,
+                    Screen.Tips.route,
+                    Screen.Profile.route
+                )
+            ) {
+                BottomNavBar(navController)
+            }
+        }
+    ) { innerPadding ->
+        NavGraphContent(
+            navController = navController,
+            appContainer = appContainer,
+            innerPadding = innerPadding,
+            startDestination = startDestination
+        )
+    }
+}
+
+@Composable
+fun NavGraphContent(
+    navController: NavHostController,
+    appContainer: AppContainer,
+    innerPadding: PaddingValues,
+    startDestination: String
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
         composable(Screen.Login.route) { LoginScreen(navController, appContainer) }
         composable(Screen.SignUp.route) { SignUpScreen(navController, appContainer) }
         composable(Screen.Onboarding.route) { OnboardingScreen(navController, appContainer) }

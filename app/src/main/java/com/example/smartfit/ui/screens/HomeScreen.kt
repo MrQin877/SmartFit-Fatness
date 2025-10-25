@@ -72,11 +72,6 @@ fun HomeScreen(navController: NavHostController, appContainer: AppContainer) {
 
             Spacer(Modifier.height(16.dp))
 
-            AnimatedVisibility(visible = loaded) {
-                WeeklySummaryChart(weekData = listOf(4000, 6000, 7000, 9000, 8000, 5000, 3000))
-            }
-
-            Spacer(Modifier.height(16.dp))
 
             AnimatedVisibility(visible = loaded) {
                 WorkoutSummaryCard(workouts = listOf("Morning Yoga", "Evening Run"))
@@ -126,112 +121,121 @@ fun ProfileGreeting() {
 }
 
 @Composable
-fun DailyActivityCard(steps: Int, stepTarget: Int, calories: Int, calorieTarget: Int) {
+fun DailyActivityCard(
+    steps: Int,
+    stepTarget: Int,
+    calories: Int,
+    calorieTarget: Int
+) {
     val stepProgress by animateFloatAsState(targetValue = min(steps / stepTarget.toFloat(), 1f))
-    val calProgress by animateFloatAsState(
-        targetValue = min(
-            calories / calorieTarget.toFloat(),
-            1f
-        )
-    )
+    val calProgress by animateFloatAsState(targetValue = min(calories / calorieTarget.toFloat(), 1f))
 
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column {
-                Text("Daily Activity", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("Steps: $steps / $stepTarget")
-                Text("Calories: $calories / $calorieTarget kcal")
-            }
-            Row {
-                CircularProgressIndicator(
-                    progress = { stepProgress },
-                    strokeWidth = 6.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(50.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                LinearProgressIndicator(
-                    progress = { calProgress }, // <-- Corrected line
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
-            }
-        }
-    }
-}
+            Text(
+                "Daily Activity",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                modifier = Modifier.align(Alignment.Start)
+            )
 
-@Composable
-fun WeeklySummaryChart(weekData: List<Int>) {
-    val max = weekData.maxOrNull()?.toFloat() ?: 1f
-    val animatedProgresses = weekData.map { target ->
-        animateFloatAsState(target / max).value
-    }
+            Spacer(Modifier.height(16.dp))
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Weekly Summary", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(12.dp))
-            val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-            days.forEachIndexed { i, day ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    Text(day, modifier = Modifier.width(40.dp))
-                    LinearProgressIndicator(
-                        progress = { animatedProgresses[i] },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 🟢 Steps
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { stepProgress },
+                            strokeWidth = 8.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Text(
+                            text = "${(stepProgress * 100).toInt()}%",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Steps", fontWeight = FontWeight.SemiBold)
+                    Text("$steps / $stepTarget", fontSize = 12.sp, color = Color.Gray)
+                }
+
+                // 🟠 Calories
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { calProgress },
+                            strokeWidth = 8.dp,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Text(
+                            text = "${(calProgress * 100).toInt()}%",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("Calories", fontWeight = FontWeight.SemiBold)
+                    Text("$calories / $calorieTarget kcal", fontSize = 12.sp, color = Color.Gray)
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun WorkoutSummaryCard(workouts: List<String>) {
+fun WorkoutSummaryCard(workouts: List<String>, onViewAll: (() -> Unit)? = null) {
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Recent Workouts", fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(12.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(workouts.size) { i ->
-                    AnimatedVisibility(visible = true) {
-                        Card(
-                            modifier = Modifier
-                                .width(140.dp)
-                                .height(80.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                        ) {
-                            Box(
-                                Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(workouts[i], color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                        }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Recent Workouts", fontWeight = FontWeight.Bold)
+                TextButton(onClick = { onViewAll?.invoke() }) {
+                    Text("View all →", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Display workouts in vertical rows (instead of LazyRow)
+            workouts.forEach { workout ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(workout, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
             }
@@ -240,22 +244,44 @@ fun WorkoutSummaryCard(workouts: List<String>) {
 }
 
 @Composable
-fun TipsCard(tips: List<String>) {
+fun TipsCard(tips: List<String>, onViewAll: (() -> Unit)? = null) {
     Card(
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Tips & Suggestions", fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Tips & Suggestions", fontWeight = FontWeight.Bold)
+                TextButton(onClick = { onViewAll?.invoke() }) {
+                    Text("View all →", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
             Spacer(Modifier.height(8.dp))
+
             tips.forEach {
-                Text("• $it", fontSize = 14.sp)
-                Spacer(Modifier.height(4.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Text(
+                        text = "• $it",
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun BottomNavBar(navController: NavHostController) {
