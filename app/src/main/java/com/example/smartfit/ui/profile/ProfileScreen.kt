@@ -1,5 +1,5 @@
-// app/src/main/java/com/example/smartfit/ui/screens/ProfileScreen.kt
-package com.example.smartfit.ui.screens
+// app/src/main/java/com/example/smartfit/ui/profile/ProfileScreen.kt
+package com.example.smartfit.ui.profile
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -14,28 +14,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
-import com.example.smartfit.AppContainer
-import com.example.smartfit.data.datastore.UserPreferences
-import kotlinx.coroutines.launch
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.navigation.Dest
 
 @Composable
 fun ProfileScreen(
-    navController: NavHostController,
-    appContainer: AppContainer
+    navController: NavHostController
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val vm: ProfileViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val theme = vm.themeMode.collectAsState().value          // "SYSTEM" | "DARK" | "LIGHT"
+    val goal  = vm.stepGoal.collectAsState().value           // Int
 
-    val themeMode by UserPreferences.getTheme(context).collectAsState(initial = "SYSTEM")
-    val stepGoal by UserPreferences.getStepGoal(context).collectAsState(initial = 8000)
-
-    var goal by remember(stepGoal) { mutableStateOf(stepGoal.toFloat()) }
-    var isDark by remember(themeMode) { mutableStateOf(themeMode == "DARK") }
+    // UI editing state derived from VM state
+    var isDark by remember(theme) { mutableStateOf(theme == "DARK") }
+    var goalEditing by remember(goal) { mutableStateOf(goal.toFloat()) }
 
     Column(
         modifier = Modifier
@@ -43,21 +40,17 @@ fun ProfileScreen(
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        // ----- Fixed header -----
         Text("Profile", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
 
         HeaderCard(
             name = "LamCong",
             avatarUrl = "https://i.pravatar.cc/150?img=12",
-            onEdit = {
-                // navController.navigate("edit_profile") // (optional) if you add that screen
-            }
+            onEdit = { /* TODO: navigate to edit profile */ }
         )
 
         Spacer(Modifier.height(14.dp))
 
-        // ----- Scrollable content -----
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 100.dp)
@@ -69,22 +62,22 @@ fun ProfileScreen(
             item {
                 SettingsCard(
                     isDark = isDark,
-                    onDarkChange = {
-                        isDark = it
-                        scope.launch { UserPreferences.setTheme(context, if (it) "DARK" else "LIGHT") }
+                    onDarkChange = { checked ->
+                        isDark = checked
+                        vm.setTheme(if (checked) "DARK" else "LIGHT")
                     },
-                    goal = goal,
-                    onGoalChange = { goal = it },
-                    onGoalCommit = { scope.launch { UserPreferences.setStepGoal(context, goal.toInt()) } }
+                    goal = goalEditing,
+                    onGoalChange = { goalEditing = it.coerceIn(1000f, 20000f) },
+                    onGoalCommit = { vm.setStepGoal(goalEditing.toInt()) }
                 )
                 Spacer(Modifier.height(18.dp))
             }
             item {
                 LogoutButton(
                     onLogout = {
-                        scope.launch { UserPreferences.setLoggedIn(context, false) }
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
+                        vm.logout()
+                        navController.navigate(Dest.Login) {
+                            popUpTo(Dest.Home) { inclusive = true }
                             launchSingleTop = true
                         }
                     }
@@ -114,7 +107,9 @@ private fun HeaderCard(
             Image(
                 painter = rememberAsyncImagePainter(avatarUrl),
                 contentDescription = "Avatar",
-                modifier = Modifier.size(64.dp).clip(CircleShape),
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
             Spacer(Modifier.width(14.dp))
@@ -173,7 +168,7 @@ private fun SettingsCard(
                 Switch(
                     checked = isDark,
                     onCheckedChange = onDarkChange,
-                    colors= SwitchDefaults.colors(
+                    colors = SwitchDefaults.colors(
                         uncheckedThumbColor = MaterialTheme.colorScheme.surface,
                         uncheckedTrackColor = MaterialTheme.colorScheme.secondary,
                         uncheckedBorderColor = Color.Transparent,

@@ -1,49 +1,40 @@
-package com.example.smartfit.ui.screens
+package com.example.smartfit.ui.logs
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smartfit.AppContainer
-import com.example.smartfit.ui.navigation.Screen
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsRun
-
-import androidx.compose.runtime.Composable
+import com.example.smartfit.data.model.ActivityLog
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.navigation.Dest
 
 @Composable
 fun LogsScreen(
     navController: NavHostController,
-    appContainer: AppContainer,
-    contentPadding: PaddingValues = PaddingValues(0.dp) // <-- receive padding from AppNavHost
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-    // TODO: replace with DB flow soon
-    val sampleLogs = remember {
-        listOf(
-            ActivityLogUi("Morning Run", "4.56 km", "32 min", "290 kcal", "Apr 20"),
-            ActivityLogUi("Evening Walk", "2.8 km", "25 min", "150 kcal", "Apr 21"),
-            ActivityLogUi("Gym Workout", "-", "45 min", "400 kcal", "Apr 22"),
-            ActivityLogUi("Cycling", "10.5 km", "40 min", "370 kcal", "Apr 23")
-        )
-    }
 
-    var selectedFilter by remember { mutableStateOf("All") }
+    val vm: LogsViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val ui = vm.state.collectAsState().value
+
+    var selectedFilter by remember { mutableStateOf("All") } // keep for future filters
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)     // <- respect top-level scaffold/pill bar insets
+            .padding(contentPadding)
             .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(12.dp))
@@ -53,7 +44,6 @@ fun LogsScreen(
         )
         Spacer(Modifier.height(16.dp))
 
-        // Filter "chip" matching the rounded field in your mock
         OutlinedCard(
             shape = RoundedCornerShape(22.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -78,23 +68,27 @@ fun LogsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(sampleLogs) { log ->
+            items(ui.items, key = { it.id ?: it.hashCode().toLong() }) { log ->
                 ActivityLogRow(
                     log = log,
                     onClick = {
-                        navController.navigate(Screen.LogDetail.createRoute(log.hashCode().toLong()))
+                        val id = log.id ?: return@ActivityLogRow
+                        navController.navigate(Dest.LogDetail(id))
                     }
                 )
             }
-
-            // Add safe space so last item clears the pill bar + big (+)
             item { Spacer(Modifier.height(120.dp)) }
         }
     }
 }
 
 @Composable
-private fun ActivityLogRow(log: ActivityLogUi, onClick: () -> Unit) {
+private fun ActivityLogRow(log: ActivityLog, onClick: () -> Unit) {
+    val distance = log.notes?.takeIf { it.isNotBlank() } ?: "-" // adapt if you add distance field
+    val duration = (log.durationMin ?: 0).let { "$it min" }
+    val calories = (log.calories ?: 0).let { "$it kcal" }
+    val date = log.date
+
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(22.dp),
@@ -117,31 +111,20 @@ private fun ActivityLogRow(log: ActivityLogUi, onClick: () -> Unit) {
             Spacer(Modifier.width(12.dp))
 
             Column(Modifier.weight(1f)) {
-                Text(log.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(log.type.orEmpty(), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "${log.distance} - ${log.duration} - ${log.calories}",
+                    text = "$distance - $duration - $calories",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
-                text = log.date,
+                text = date,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
-
-
-
-// Simple data holder for preview/demo
-data class ActivityLogUi(
-    val name: String,
-    val distance: String,
-    val duration: String,
-    val calories: String,
-    val date: String
-)

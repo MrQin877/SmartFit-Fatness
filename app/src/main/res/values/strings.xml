@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">SmartFit</string>
+    <!-- Accessibility/content descriptions -->
+    <string name="cd_profile_picture">Profile picture</string>
+    <string name="cd_add_activity">Add activity</string>
+    <string name="cd_back">Back</string>
 </resources>

@@ -1,4 +1,3 @@
-
 package com.example.smartfit.ui.navigation
 
 import androidx.compose.foundation.BorderStroke
@@ -25,7 +24,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination
@@ -33,7 +31,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 
 @Composable
 fun PillBottomBarWithFab(
@@ -69,36 +67,36 @@ fun PillBottomBarWithFab(
             ) {
                 BarItem(
                     label = "Home",
-                    selected = current.isSelected(Screen.Home.route),
-                    onClick = { navController.navigateSingleTopTo(Screen.Home.route) },
+                    selected = current.isSelected<Dest.Home>(),
+                    onClick = { navController.navigateSingleTopTo(Dest.Home) },
                     icon = { Icon(Icons.Default.Home, null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
                 BarItem(
                     label = "Activity",
-                    selected = current.isSelected(Screen.Logs.route),
-                    onClick = { navController.navigateSingleTopTo(Screen.Logs.route) },
+                    selected = current.isSelected<Dest.Logs>(),
+                    onClick = { navController.navigateSingleTopTo(Dest.Logs) },
                     icon = { Icon(Icons.AutoMirrored.Filled.List, null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
 
-                // leave space under the (+)
+                // space under the (+)
                 Spacer(Modifier.width(60.dp))
 
                 BarItem(
                     label = "Tips",
-                    selected = current.isSelected(Screen.Tips.route),
-                    onClick = { navController.navigateSingleTopTo(Screen.Tips.route) },
+                    selected = current.isSelected<Dest.Tips>(),
+                    onClick = { navController.navigateSingleTopTo(Dest.Tips) },
                     icon = { Icon(Icons.Default.Lightbulb, null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
                 BarItem(
                     label = "Profile",
-                    selected = current.isSelected(Screen.Profile.route),
-                    onClick = { navController.navigateSingleTopTo(Screen.Profile.route) },
+                    selected = current.isSelected<Dest.Profile>(),
+                    onClick = { navController.navigateSingleTopTo(Dest.Profile) },
                     icon = { Icon(Icons.Default.Person, null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
@@ -110,7 +108,7 @@ fun PillBottomBarWithFab(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (10).dp)       // a bit lower than before
+                .offset(y = 10.dp)
                 .size(50.dp)
                 .clip(CircleShape)
                 .background(accent.copy(alpha = 0.16f))
@@ -121,7 +119,7 @@ fun PillBottomBarWithFab(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (10).dp)       // sit into the bar more
+                .offset(y = 10.dp)
                 .size(52.dp)
                 .clip(CircleShape)
                 .border(BorderStroke(2.dp, MaterialTheme.colorScheme.outline), CircleShape)
@@ -130,7 +128,6 @@ fun PillBottomBarWithFab(
         ) {
             FloatingActionButton(
                 onClick = onFabClick,
-                // ✅ neon/lime filled background like your design
                 containerColor = accent,
                 contentColor = Color.Black,
                 shape = CircleShape,
@@ -170,29 +167,20 @@ private fun BarItem(
             fontSize = 12.sp,
             color = tint,
             maxLines = 1,
-            overflow = TextOverflow.Clip // no ellipsis needed now that we use weights
+            overflow = TextOverflow.Clip
         )
     }
 }
 
-private fun NavDestination?.isSelected(route: String): Boolean =
-    this?.hierarchy?.any { it.route == route } == true
+/* -------- type-safe helpers -------- */
 
-private fun NavHostController.navigateSingleTopTo(route: String) {
-    navigate(route) {
+private inline fun <reified T : Dest> NavDestination?.isSelected(): Boolean =
+    this?.hierarchy?.any { it.hasRoute<T>() } == true
+
+private fun NavHostController.navigateSingleTopTo(dest: Dest) {
+    navigate(dest) {
         launchSingleTop = true
         popUpTo(graph.findStartDestination().id) { saveState = true }
         restoreState = true
     }
 }
-
-@Preview
-@Composable
-fun PreviewNavigationBar(){
-    val navController = rememberNavController()
-    PillBottomBarWithFab(
-        navController = navController,
-        onFabClick = { navController.navigate(Screen.AddLog.route) }
-    )
-}
-

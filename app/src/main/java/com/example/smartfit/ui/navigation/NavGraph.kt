@@ -6,73 +6,83 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
-import com.example.smartfit.AppContainer
-import com.example.smartfit.ui.screens.*
+import androidx.navigation.toRoute
+import com.example.smartfit.di.AppGraph
+import com.example.smartfit.ui.auth.LoginScreen
+import com.example.smartfit.ui.auth.OnboardingScreen
+import com.example.smartfit.ui.auth.SignUpScreen
+import com.example.smartfit.ui.home.HomeScreen
+import com.example.smartfit.ui.logs.AddLogScreen
+import com.example.smartfit.ui.logs.LogDetailScreen
+import com.example.smartfit.ui.logs.LogsScreen
+import com.example.smartfit.ui.profile.ProfileScreen
+import com.example.smartfit.ui.tips.TipsScreen
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun NavGraphContent(
     navController: NavHostController,
-    appContainer: AppContainer,
+    graph: AppGraph,
     innerPadding: PaddingValues,
-    startDestination: String
+    startDestination: Dest,
+    isDark: Boolean
+
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-        composable(Screen.Onboarding.route) { OnboardingScreen(navController, appContainer) }
-        composable(Screen.Login.route) { LoginScreen(navController, appContainer) }
-        composable(Screen.SignUp.route) { SignUpScreen(navController, appContainer) }
-
-        composable(Screen.Home.route) {
-            HomeScreen(navController, appContainer, contentPadding = innerPadding)
+        // ----- Auth / onboarding
+        composable<Dest.Onboarding> {
+            OnboardingScreen(navController)
         }
-        composable(Screen.Logs.route) {
-            LogsScreen(navController, appContainer, contentPadding = innerPadding)
+        composable<Dest.Login> {
+            LoginScreen(navController,isDark = isDark)
         }
-        composable(
-            route = Screen.LogDetail.route,
-            arguments = listOf(navArgument("id") { type = NavType.LongType })
-        ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getLong("id") ?: 0L
-            LogDetailScreen(navController, appContainer, id)
+        composable<Dest.SignUp> {
+            SignUpScreen(navController, isDark = isDark)
         }
 
-        // --- Animated sheet route ---
-        composable(
-            route = Screen.AddLog.route,
+        // ----- Top-level tabs (remember to pass innerPadding)
+        composable<Dest.Home> {
+            HomeScreen(navController,contentPadding = innerPadding)
+        }
+        composable<Dest.Logs> {
+            LogsScreen(navController,contentPadding = innerPadding)
+        }
+        composable<Dest.Tips> {
+            TipsScreen(navController, graph)
+        }
+        composable<Dest.Profile> {
+            ProfileScreen(navController,)
+        }
+
+        // ----- Detail with type-safe argument
+        composable<Dest.LogDetail> { backStackEntry ->
+            val args = backStackEntry.toRoute<Dest.LogDetail>()
+            LogDetailScreen(navController, isDark = isDark)
+        }
+
+        // ----- Bottom-sheet style AddLog with transitions
+        composable<Dest.AddLog>(
             enterTransition = {
-                // slide IN from bottom over current screen
                 slideInVertically(
                     initialOffsetY = { it },
                     animationSpec = tween(300)
                 ) + fadeIn(animationSpec = tween(200))
             },
-            exitTransition = {
-                // when navigating forward away from AddLog (rare) — fade
-                fadeOut(tween(150))
-            },
-            popEnterTransition = {
-                // returning back to AddLog — simple fade
-                fadeIn(tween(150))
-            },
+            exitTransition = { fadeOut(tween(150)) },
+            popEnterTransition = { fadeIn(tween(150)) },
             popExitTransition = {
-                // when popping AddLog (close/back) — slide OUT to bottom
                 slideOutVertically(
                     targetOffsetY = { it },
                     animationSpec = tween(300)
                 ) + fadeOut(animationSpec = tween(200))
             }
         ) {
-            AddLogScreen(navController, appContainer)
+            AddLogScreen(navController)
         }
-
-        composable(Screen.Tips.route) { TipsScreen(navController, appContainer) }
-        composable(Screen.Profile.route) { ProfileScreen(navController, appContainer) }
     }
 }

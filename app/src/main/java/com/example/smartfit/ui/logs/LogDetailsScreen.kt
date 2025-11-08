@@ -1,6 +1,6 @@
-package com.example.smartfit.ui.screens
+package com.example.smartfit.ui.logs
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,45 +11,37 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smartfit.AppContainer
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.common.LogDetailBackground
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.MaterialTheme
-import com.example.smartfit.ui.theme.LogDetailBackground
-
 
 @Composable
 fun LogDetailScreen(
     navController: NavHostController,
-    appContainer: AppContainer,
-    id: Long
+    isDark: Boolean
 ) {
-    // TODO: load from Room using id
-    val log = remember(id) {
-        DemoLogUi(
-            title = "Morning Run",
-            type = "Running",
-            durationMin = 45,
-            distanceKm = 8.50,
-            calories = 430,
-            createdAt = LocalDate.of(2025, 4, 20)
-        )
+
+    val vm: LogDetailViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val log = vm.log.collectAsState().value
+
+    if (log == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     val scroll = rememberScrollState()
@@ -64,10 +56,8 @@ fun LogDetailScreen(
                 .fillMaxWidth()
                 .height(280.dp)
         ) {
-            // Background image (replace with your asset or keep just the scrim)
-            // Add a drawable named bg_gym_pattern (PNG/SVG) or remove this Image
-            LogDetailBackground()
-            // Dark scrim so foreground pops
+            LogDetailBackground(isDark)
+
             Box(
                 Modifier
                     .matchParentSize()
@@ -80,7 +70,6 @@ fun LogDetailScreen(
                     )
             )
 
-            // Top actions
             Row(
                 Modifier
                     .fillMaxWidth()
@@ -92,14 +81,11 @@ fun LogDetailScreen(
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
-                TextButton(onClick = { /* TODO: navigate to edit screen */ }) {
-                    Text(
-                        "Edit",
-                        color = MaterialTheme.colorScheme.onPrimary)
+                TextButton(onClick = { /* TODO: navigate to edit */ }) {
+                    Text("Edit", color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
 
-            // Center badge + title
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -131,7 +117,7 @@ fun LogDetailScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = log.title,
+                    text = log.type.orEmpty(),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.2.sp
@@ -140,7 +126,7 @@ fun LogDetailScreen(
             }
         }
 
-        // ---------- Body cards ----------
+        // ---------- Body ----------
         Column(
             Modifier
                 .fillMaxWidth()
@@ -148,61 +134,31 @@ fun LogDetailScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            // Type (with chevron affordance)
-            ValueCard(
-                label = "Type",
-                value = log.type,
-                trailing = {
-                    Text(
-                        text = ">",
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.titleLarge,
-                        modifier = Modifier.padding(end = 6.dp)
-                    )
-                }
-            )
-
+            ValueCard("Duration (min)", "${log.durationMin ?: 0}")
             Spacer(Modifier.height(12.dp))
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ValueCard(
-                    label = "Duration (min)",
-                    value = "${log.durationMin}",
-                    modifier = Modifier.weight(1f)
-                )
-                ValueCard(
-                    label = "Distance (km)",
-                    value = String.format("%.2f", log.distanceKm ?: 0.0),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
+            ValueCard("Calories (kcal)", "${log.calories ?: 0}")
             Spacer(Modifier.height(12.dp))
 
-            ValueCard(
-                label = "Calories (kcal)",
-                value = "${log.calories}"
-            )
-
+            ValueCard("Notes", log.notes ?: "-")
             Spacer(Modifier.height(12.dp))
 
-            // Delete
             OutlinedButton(
-                onClick = { /* TODO */ },
+                onClick = { /* TODO delete via VM if you add API */ },
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 ),
-                border = BorderStroke(1.dp, SolidColor(MaterialTheme.colorScheme.error)), // ← SolidColor
+                border = BorderStroke(1.dp, SolidColor(MaterialTheme.colorScheme.error)),
                 shape = RoundedCornerShape(28.dp),
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Delete")
-            }
+            ) { Text("Delete") }
 
             Spacer(Modifier.height(16.dp))
-            val dateStr = log.createdAt.format(DateTimeFormatter.ofPattern("yyyy MMM dd"))
+            val dateText = runCatching {
+                LocalDate.parse(log.date).format(DateTimeFormatter.ofPattern("yyyy MMM dd"))
+            }.getOrElse { log.date }
             Text(
-                text = "Added at $dateStr",
+                text = "Added at $dateText",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp, bottom = 24.dp)
@@ -215,8 +171,7 @@ fun LogDetailScreen(
 private fun ValueCard(
     label: String,
     value: String,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -224,18 +179,11 @@ private fun ValueCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                trailing?.invoke()
-            }
+            Text(
+                label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(Modifier.height(6.dp))
             Text(
                 value,
@@ -244,12 +192,3 @@ private fun ValueCard(
         }
     }
 }
-
-private data class DemoLogUi(
-    val title: String,
-    val type: String,
-    val durationMin: Int,
-    val distanceKm: Double?,
-    val calories: Int,
-    val createdAt: LocalDate
-)

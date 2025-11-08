@@ -1,50 +1,51 @@
-package com.example.smartfit.ui.screens
+package com.example.smartfit.ui.home
 
-import android.app.Application
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.smartfit.AppContainer
-import com.example.smartfit.ui.navigation.Screen
+import com.example.smartfit.di.AppGraph
+import com.example.smartfit.ui.navigation.Dest
 import kotlinx.coroutines.delay
 import java.time.LocalTime
 import kotlin.math.min
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.automirrored.filled.List
-
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.home.HomeViewModel
 
 
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    appContainer: AppContainer,
-    contentPadding: PaddingValues = PaddingValues(0.dp) // <-- NEW
-) {
-    var loaded by remember { mutableStateOf(false) }
+    contentPadding: PaddingValues = PaddingValues(0.dp))
+{
+    val vm: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val ui = vm.ui.collectAsState().value
 
+    var loaded by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(300)
         loaded = true
@@ -53,7 +54,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding)            // <-- respect top-level scaffold padding
+            .padding(contentPadding)
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
@@ -64,31 +65,36 @@ fun HomeScreen(
         Spacer(Modifier.height(16.dp))
 
         AnimatedVisibility(visible = loaded) {
-            DailyActivityCard(steps = 11000, stepTarget = 16000, calories = 440, calorieTarget = 680)
+            DailyActivityCard(
+                steps = ui.stepsToday,
+                stepTarget = 16000,
+                calories = ui.caloriesToday,
+                calorieTarget = 680
+            )
         }
 
         Spacer(Modifier.height(16.dp))
 
         AnimatedVisibility(visible = loaded) {
-            WorkoutSummaryCard(workouts = listOf("Indoor Walk", "Midnight Running"))
+            WorkoutSummaryCard(workouts = ui.workouts)
         }
 
         Spacer(Modifier.height(16.dp))
 
-            AnimatedVisibility(visible = loaded) {
-                TipsCard(
-                    tips = listOf(
-                        "Drink water after every workout 💧",
-                        "Stretch before running 🧘",
-                        "Try high-protein meals 🍗"
-                    )
-                )
-            }
-
-            Spacer(Modifier.height(80.dp))
+        AnimatedVisibility(visible = loaded) {
+            TipsCard(
+                tips = listOf(
+                    "Drink water after every workout 💧",
+                    "Stretch before running 🧘",
+                    "Try high-protein meals 🍗"
+                ),
+                onViewAll = { navController.navigate(Dest.Tips) }
+            )
         }
-    }
 
+        Spacer(Modifier.height(80.dp))
+    }
+}
 
 @Composable
 fun ProfileGreeting() {
@@ -151,7 +157,7 @@ fun DailyActivityCard(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 🟢 Steps
+                // Steps
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
@@ -171,7 +177,7 @@ fun DailyActivityCard(
                     Text("$steps / $stepTarget", fontSize = 12.sp, color = Color.Gray)
                 }
 
-                // 🟠 Calories
+                // Calories
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(
@@ -195,7 +201,6 @@ fun DailyActivityCard(
     }
 }
 
-
 @Composable
 fun WorkoutSummaryCard(workouts: List<String>, onViewAll: (() -> Unit)? = null) {
     Card(
@@ -217,7 +222,6 @@ fun WorkoutSummaryCard(workouts: List<String>, onViewAll: (() -> Unit)? = null) 
 
             Spacer(Modifier.height(8.dp))
 
-            // Display workouts in vertical rows (instead of LazyRow)
             workouts.forEach { workout ->
                 Card(
                     modifier = Modifier
@@ -279,59 +283,52 @@ fun TipsCard(tips: List<String>, onViewAll: (() -> Unit)? = null) {
     }
 }
 
-
+/* ─────────────────────────────────────────────────────────────
+   Optional: keep only if you want a simple bottom bar here.
+   Otherwise, delete this whole composable (you use a pill bar).
+   ───────────────────────────────────────────────────────────── */
 @Composable
 fun BottomNavBar(navController: NavHostController) {
     NavigationBar {
         NavigationBarItem(
             selected = false,
-            onClick = { navController.navigate(Screen.Home.route) },
+            onClick = { navController.navigate(Dest.Home) },
             icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
             label = { Text("Home") }
         )
         NavigationBarItem(
             selected = false,
-            onClick = { navController.navigate(Screen.Logs.route) },
-            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Activity")
-            },
+            onClick = { navController.navigate(Dest.Logs) },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Activity") },
             label = { Text("Activity") }
         )
         NavigationBarItem(
             selected = false,
-            onClick = { navController.navigate(Screen.AddLog.route) },
-            icon = { Icon(Icons.Default.AddCircle, contentDescription = "Add") },
-            label = { Text("Add") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = { navController.navigate(Screen.Tips.route) },
+            onClick = { navController.navigate(Dest.Tips) },
             icon = { Icon(Icons.Default.Lightbulb, contentDescription = "Tips") },
             label = { Text("Tips") }
         )
         NavigationBarItem(
             selected = false,
-            onClick = { navController.navigate(Screen.Profile.route) },
+            onClick = { navController.navigate(Dest.Profile) },
             icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
             label = { Text("Profile") }
         )
     }
 }
 
+/* Preview */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewHomeScreen() {
     val navController = rememberNavController()
     val context = LocalContext.current
-    val appContainer = remember { AppContainer(context.applicationContext as Application) }
+    val graph = remember { AppGraph(context) }
 
     MaterialTheme {
         HomeScreen(
             navController = navController,
-            appContainer = appContainer,
-            contentPadding = PaddingValues(0.dp) // preview padding
+            contentPadding = PaddingValues(0.dp)
         )
     }
 }
-
-
-

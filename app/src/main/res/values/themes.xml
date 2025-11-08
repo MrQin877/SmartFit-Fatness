@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.SmartFit" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Base app theme used before Compose starts -->
+    <style name="Theme.SmartFit" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Optional: keep bars transparent, Compose will style them at runtime -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

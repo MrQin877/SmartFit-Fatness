@@ -9,47 +9,42 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import com.example.smartfit.data.datastore.UserPreferences
 import com.example.smartfit.ui.navigation.AppNavHost
 import com.example.smartfit.ui.theme.SmartFitTheme
+import com.example.smartfit.ui.theme.ThemeViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val graph = (application as SmartFitApplication).graph
+
+
         setContent {
-            val ctx = LocalContext.current
-            val mode by UserPreferences.getTheme(ctx).collectAsState(initial = "SYSTEM")
+            // create the VM inside composition so it survives recomposition
+            val themeVm = remember { ThemeViewModel(graph.prefsRepo) }
+
+            val mode by themeVm.themeMode.collectAsState()
             val darkTheme = when (mode) {
                 "DARK" -> true
                 "LIGHT" -> false
-                else    -> isSystemInDarkTheme()
+                else -> isSystemInDarkTheme()
             }
-
 
             LaunchedEffect(darkTheme) {
                 val transparent = AColor.TRANSPARENT
-                val darkScrim   = AColor.argb(0x66, 0, 0, 0)   // ~40% black
-
-                this@MainActivity.enableEdgeToEdge(
-                    statusBarStyle =
-                        if (darkTheme)
-                            SystemBarStyle.dark(transparent)           // light icons
-                        else
-                            SystemBarStyle.light(transparent, darkScrim), // dark icons
-                    navigationBarStyle =
-                        if (darkTheme)
-                            SystemBarStyle.dark(transparent)
-                        else
-                            SystemBarStyle.light(transparent, darkScrim)
+                val darkScrim = AColor.argb(0x66, 0, 0, 0)
+                enableEdgeToEdge(
+                    statusBarStyle = if (darkTheme) SystemBarStyle.dark(transparent)
+                    else SystemBarStyle.light(transparent, darkScrim),
+                    navigationBarStyle = if (darkTheme) SystemBarStyle.dark(transparent)
+                    else SystemBarStyle.light(transparent, darkScrim)
                 )
             }
 
             SmartFitTheme(darkTheme = darkTheme) {
-                Surface(modifier = Modifier) {
-                    AppNavHost(appContainer = (application as SmartFitApplication).appContainer)
+                Surface {
+                    AppNavHost(graph = graph)
                 }
             }
         }

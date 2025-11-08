@@ -1,8 +1,5 @@
-package com.example.smartfit.ui.screens
+package com.example.smartfit.ui.auth
 
-import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,8 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color      // <-- keep Compose Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -27,39 +23,48 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smartfit.AppContainer
-import com.example.smartfit.data.datastore.UserPreferences
-import com.example.smartfit.ui.navigation.Screen
-import com.example.smartfit.ui.theme.LoginBackground
-import kotlinx.coroutines.launch
-import android.graphics.Color as AColor       // <-- alias Android Color only
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.common.RegisterBackground
+import com.example.smartfit.ui.navigation.Dest
 
 @Composable
-fun LoginScreen(
+fun SignUpScreen(
     navController: NavHostController,
-    appContainer: AppContainer
+    isDark: Boolean
 ) {
+    val vm: SignUpViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val ui = vm.state.collectAsState().value
+
+    // navigate after successful sign up
+    LaunchedEffect(Unit) {
+        vm.effect.collect { eff ->
+            if (eff is SignUpEffect.NavigateLogin) {
+                navController.navigate(Dest.Login) {
+                    popUpTo(Dest.SignUp) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     val accent = Color(0xFFAEF200)
-
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(false) }
-
-    val ctx = androidx.compose.ui.platform.LocalContext.current
     val scroll = rememberScrollState()
-    val scope = rememberCoroutineScope()     // <-- get a UI scope
 
-    val canLogin = email.isNotBlank() && password.isNotBlank() && !loading
+    val canRegister =
+        ui.name.isNotBlank() &&
+                ui.email.isNotBlank() &&
+                ui.password.length >= 6 &&
+                ui.password == ui.confirm &&
+                !ui.loading
 
     Scaffold(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0)
     ) { _ ->
         Box(Modifier.fillMaxSize()) {
-            LoginBackground()
+            RegisterBackground(isDark)
 
             Column(
                 modifier = Modifier
@@ -70,50 +75,41 @@ fun LoginScreen(
                     .verticalScroll(scroll),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(32.dp))
 
-                Text("Welcome", color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
-                Text("Back", color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Create", color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Account", color = Color.White, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
 
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(20.dp))
 
+                GlassField(value = ui.name, onValueChange = vm::onName, placeholder = "Name")
+                Spacer(Modifier.height(14.dp))
                 GlassField(
-                    value = email,
-                    onValueChange = { email = it },
+                    value = ui.email,
+                    onValueChange = vm::onEmail,
                     placeholder = "Email",
                     keyboardType = KeyboardType.Email
                 )
                 Spacer(Modifier.height(14.dp))
-
                 GlassField(
-                    value = password,
-                    onValueChange = { password = it },
+                    value = ui.password,
+                    onValueChange = vm::onPassword,
                     placeholder = "Password",
+                    isPassword = true
+                )
+                Spacer(Modifier.height(14.dp))
+                GlassField(
+                    value = ui.confirm,
+                    onValueChange = vm::onConfirm,
+                    placeholder = "Confirm Password",
                     isPassword = true
                 )
 
                 Spacer(Modifier.height(22.dp))
 
                 Button(
-                    onClick = {
-                        if (loading) return@Button
-                        scope.launch {
-                            loading = true
-                            error = null
-                            val ok = appContainer.userRepository.login(email, password) != null
-                            if (ok) {
-                                UserPreferences.setLoggedIn(ctx, true)
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                    launchSingleTop = true
-                                }
-                            } else {
-                                error = "Invalid email or password"
-                            }
-                            loading = false
-                        }
-                    },
-                    enabled = canLogin,
+                    onClick = { vm.signUp() },
+                    enabled = canRegister,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -125,44 +121,36 @@ fun LoginScreen(
                         disabledContentColor = Color.Black.copy(alpha = 0.6f)
                     )
                 ) {
-                    Text(if (loading) "Signing in..." else "Login",
+                    Text(if (ui.loading) "Creating..." else "Register",
                         fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
 
-                if (error != null) {
+                ui.error?.let {
                     Spacer(Modifier.height(10.dp))
-                    Text(error!!, color = MaterialTheme.colorScheme.error)
+                    Text(it, color = MaterialTheme.colorScheme.error)
                 }
 
                 Spacer(Modifier.height(18.dp))
 
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Divider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.24f))
-                    Text("  OR  ", color = Color.White.copy(alpha = 0.85f),
-                        style = MaterialTheme.typography.labelLarge)
-                    Divider(Modifier.weight(1f), color = Color.White.copy(alpha = 0.24f))
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                val register = buildAnnotatedString {
-                    append("Don’t have an account? ")
+                val login = buildAnnotatedString {
+                    append("Already have an account? ")
                     withStyle(SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) {
-                        append("Register")
+                        append("Login")
                     }
                 }
-                Text(register, color = Color.White,
-                    modifier = Modifier.clickable {
-                        navController.navigate(Screen.SignUp.route) { launchSingleTop = true }
-                    })
+                Text(
+                    login,
+                    color = Color.White,
+                    modifier = Modifier.clickable { navController.navigate(Dest.Login) }
+                )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
 
-/** Glass field like Sign-Up */
+/** same GlassField helper you already had */
 @Composable
 private fun GlassField(
     value: String,
@@ -204,5 +192,3 @@ private fun GlassField(
         )
     }
 }
-
-

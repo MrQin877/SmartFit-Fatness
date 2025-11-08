@@ -1,5 +1,5 @@
-// app/src/main/java/com/example/smartfit/ui/screens/AddLogScreen.kt
-package com.example.smartfit.ui.screens
+// app/src/main/java/com/example/smartfit/ui/logs/AddLogScreen.kt
+package com.example.smartfit.ui.logs
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -25,32 +25,47 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import com.example.smartfit.AppContainer
-import com.example.smartfit.ui.navigation.Screen
+import com.example.smartfit.ui.AppViewModelProvider
+import com.example.smartfit.ui.navigation.Dest
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
+import com.example.smartfit.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLogScreen(
     navController: NavHostController,
-    appContainer: AppContainer
 ) {
-    // ----- State -----
-    var title by remember { mutableStateOf("Evening Run") }
-    var type by remember { mutableStateOf("Running") }
-    var duration by remember { mutableStateOf("45") }
-    var distance by remember { mutableStateOf("8.50") }
-    var calories by remember { mutableStateOf("430") }
+    val vm: AddLogViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    val ui = vm.state.collectAsState().value
 
-    val recent = listOf("Evening Run", "Morning Run", "Evening Run")
-    val typeOptions = listOf("Running", "Walking", "Cycling", "Gym", "Yoga", "Other")
+    // local UI stuff
+    val recent = listOf("Evening Run", "Morning Run", "Evening Run") //adapt it to database
+    val typeOptions = stringArrayResource(R.array.activity_types).toList()
     var typeMenu by remember { mutableStateOf(false) }
 
-    val canSave = title.isNotBlank()
+
+
+    // effects
+    LaunchedEffect(Unit) {
+        vm.effect.collect { eff ->
+            when (eff) {
+                AddLogEffect.Close -> {
+                    navController.popBackStack()
+                    navController.navigate(Dest.Logs) {
+                        launchSingleTop = true
+                        restoreState = true
+                        popUpTo(Dest.Home) { saveState = true }
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = Color.Transparent,
-        // ✅ Pinned Save button that lifts above keyboard & system nav bar
         bottomBar = {
             Box(
                 Modifier
@@ -60,23 +75,8 @@ fun AddLogScreen(
                     .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
                 Button(
-                    onClick = {
-                        // TODO: persist to Room via repository:
-                        // appContainer.activityRepository.insert(...)
-                        // Optionally set a result for snackbar on Logs screen:
-                        navController.currentBackStackEntry
-                            ?.savedStateHandle
-                            ?.set("saved_activity_title", title)
-
-                        // Slide sheet out then go to Activity tab
-                        navController.popBackStack()
-                        navController.navigate(Screen.Logs.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(Screen.Home.route) { saveState = true }
-                        }
-                    },
-                    enabled = canSave,
+                    onClick = { vm.save() },
+                    enabled = ui.title.isNotBlank() && !ui.saving,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(66.dp)
@@ -86,17 +86,20 @@ fun AddLogScreen(
                         contentColor = Color.Black
                     )
                 ) {
-                    Text("Save Activity", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (ui.saving) "Saving..." else "Save Activity",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
     ) { padding ->
-        // ✅ Scrollable rounded “sheet” content
         Column(
             Modifier
                 .fillMaxWidth()
                 .padding(padding)
-                .padding(top = 24.dp, start = 12.dp, end = 12.dp)
+                .padding(top = 16.dp, start = 12.dp, end = 12.dp)
                 .shadow(12.dp, RoundedCornerShape(30.dp), clip = false)
                 .clip(RoundedCornerShape(30.dp))
                 .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
@@ -110,7 +113,7 @@ fun AddLogScreen(
             // Header
             Box(Modifier.fillMaxWidth()) {
                 Text(
-                    "New Activity",
+                    stringResource(id = R.string.cd_add_activity),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.2.sp
@@ -135,7 +138,7 @@ fun AddLogScreen(
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(recent) { chip ->
                     AssistChip(
-                        onClick = { title = chip },
+                        onClick = { vm.update { it.copy(title = chip) } },
                         label = { Text(chip) },
                         shape = RoundedCornerShape(22.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
@@ -146,7 +149,7 @@ fun AddLogScreen(
                 }
             }
 
-            Divider(
+            HorizontalDivider( // <- replaces deprecated Divider(...)
                 modifier = Modifier.padding(top = 18.dp, bottom = 16.dp),
                 color = MaterialTheme.colorScheme.outlineVariant
             )
@@ -154,15 +157,15 @@ fun AddLogScreen(
             // Activity Name
             FieldCard(label = "Activity Name") {
                 BorderlessInput(
-                    value = title,
-                    onValueChange = { title = it },
+                    value = ui.title,
+                    onValueChange = { v -> vm.update { it.copy(title = v) } },
                     singleLine = true
                 )
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // Type (card with lime chevron)
+            // Type
             FieldCard(label = "Type") {
                 Box(
                     Modifier
@@ -171,7 +174,7 @@ fun AddLogScreen(
                         .clickable { typeMenu = true }
                 ) {
                     Text(
-                        text = type,
+                        text = ui.type,
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.align(Alignment.CenterStart)
                     )
@@ -189,7 +192,10 @@ fun AddLogScreen(
                     typeOptions.forEach {
                         DropdownMenuItem(
                             text = { Text(it) },
-                            onClick = { type = it; typeMenu = false }
+                            onClick = {
+                                vm.update { s -> s.copy(type = it) }
+                                typeMenu = false
+                            }
                         )
                     }
                 }
@@ -201,17 +207,20 @@ fun AddLogScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FieldCard(label = "Duration (min)", modifier = Modifier.weight(1f)) {
                     BorderlessInput(
-                        value = duration,
-                        onValueChange = { v -> if (v.all(Char::isDigit)) duration = v },
+                        value = ui.durationMin,
+                        onValueChange = { v ->
+                            if (v.all(Char::isDigit)) vm.update { it.copy(durationMin = v) }
+                        },
                         singleLine = true,
                         keyboardType = KeyboardType.Number
                     )
                 }
                 FieldCard(label = "Distance (km)", modifier = Modifier.weight(1f)) {
                     BorderlessInput(
-                        value = distance,
+                        value = ui.distanceKm,
                         onValueChange = { v ->
-                            if (v.matches("""\d*\.?\d{0,2}""".toRegex())) distance = v
+                            if (v.matches("""\d*\.?\d{0,2}""".toRegex()))
+                                vm.update { it.copy(distanceKm = v) }
                         },
                         singleLine = true,
                         keyboardType = KeyboardType.Decimal
@@ -224,20 +233,27 @@ fun AddLogScreen(
             // Calories
             FieldCard(label = "Calories (kcal)") {
                 BorderlessInput(
-                    value = calories,
-                    onValueChange = { v -> if (v.all(Char::isDigit)) calories = v },
+                    value = ui.calories,
+                    onValueChange = { v ->
+                        if (v.all(Char::isDigit)) vm.update { it.copy(calories = v) }
+                    },
                     singleLine = true,
                     keyboardType = KeyboardType.Number
                 )
             }
 
-            // Bottom padding so last card doesn't hide behind the fixed Save bar
+            Spacer(Modifier.height(8.dp))
+            ui.error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(8.dp))
+            }
+
             Spacer(Modifier.height(24.dp))
         }
     }
 }
 
-/* ---------- Helpers ---------- */
+/* ---------- Helpers (unchanged) ---------- */
 
 @Composable
 private fun FieldCard(
@@ -259,7 +275,6 @@ private fun FieldCard(
             ),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
-            // Single outer border; inner input is borderless
             Box(Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) { content() }
         }
     }

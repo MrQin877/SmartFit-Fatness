@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // KAPT is needed for Room compiler
     id("org.jetbrains.kotlin.kapt")
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
 }
 
 android {
@@ -47,6 +48,11 @@ android {
 }
 
 dependencies {
+    //-- UI Material
+    implementation("com.google.android.material:material:1.12.0")
+
+
+
     implementation("androidx.activity:activity-ktx:1.9.2")
 
     //--- System UI Controller
@@ -63,11 +69,14 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // --- Navigation ---
-    implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.navigation:navigation-runtime-ktx:2.8.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     // --- Lifecycle & ViewModel ---
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
+
 
     // --- Coroutines ---
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
