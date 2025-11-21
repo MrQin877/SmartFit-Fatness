@@ -476,13 +476,12 @@ private fun FilterChip(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-
     Surface(
         onClick = onClick,
         modifier = modifier.height(32.dp),
         shape = RoundedCornerShape(999.dp),
         color = if (selected)
-            colorScheme.primary.copy(alpha = 0.45f)   // ⬅ 原本 0.15 太淡
+            colorScheme.primary.copy(alpha = 0.60f)   // ⬅ 原本 0.15 太淡
         else
             Color.Transparent
     ) {
@@ -687,7 +686,12 @@ private fun SmallIconBubble(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-
+    val isDark = colorScheme.background == DarkBackground
+    val iconTint = if (isDark) {
+        colorScheme.primary                   // dark mode
+    } else {
+        Color(0xFF7BB82F)             // light mode
+    }
     Surface(
         onClick = onClick,                    // ← 变成 button
         modifier = Modifier.size(32.dp),
@@ -699,7 +703,7 @@ private fun SmallIconBubble(
             Icon(
                 imageVector = icon,
                 contentDescription = contentDescription,
-                tint = colorScheme.primary
+                tint = iconTint
             )
         }
     }
