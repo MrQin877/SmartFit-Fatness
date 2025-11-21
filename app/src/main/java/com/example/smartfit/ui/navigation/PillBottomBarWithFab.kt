@@ -7,13 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.*
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -22,16 +22,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.NavDestination.Companion.hasRoute
+import com.example.smartfit.ui.icon.SmartFitIcons
 
 @Composable
 fun PillBottomBarWithFab(
@@ -40,106 +42,160 @@ fun PillBottomBarWithFab(
 ) {
     val backStack by navController.currentBackStackEntryAsState()
     val current = backStack?.destination
-    val accent = MaterialTheme.colorScheme.primary
+    val colorScheme = MaterialTheme.colorScheme
+    val accent = colorScheme.primary
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Pill container
+        // 背后轻微的模糊高光，让 bar 看起来像漂浮在上面
         Box(
             modifier = Modifier
+                .matchParentSize()
+                .padding(horizontal = 30.dp, vertical = 18.dp)
+                .blur(26.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.18f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // 主体 pill（玻璃感）
+        Surface(
+            modifier = Modifier
                 .fillMaxWidth()
-                .height(74.dp)
-                .shadow(12.dp, RoundedCornerShape(28.dp), clip = false)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center
+                .height(72.dp)
+                .shadow(
+                    elevation = 14.dp,
+                    shape = RoundedCornerShape(28.dp),
+                    clip = false
+                ),
+            shape = RoundedCornerShape(28.dp),
+            color = colorScheme.surface.copy(alpha = 0.88f),
+            tonalElevation = 8.dp,
+            border = BorderStroke(
+                1.dp,
+                colorScheme.outline.copy(alpha = 0.35f)
+            )
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp),
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 左边两个：Home + Activity
                 BarItem(
                     label = "Home",
                     selected = current.isSelected<Dest.Home>(),
                     onClick = { navController.navigateSingleTopTo(Dest.Home) },
-                    icon = { Icon(Icons.Default.Home, null) },
+                    icon = { Icon(SmartFitIcons.Home, contentDescription = null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
+
                 BarItem(
                     label = "Activity",
                     selected = current.isSelected<Dest.Logs>(),
                     onClick = { navController.navigateSingleTopTo(Dest.Logs) },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, null) },
+                    icon = { Icon(SmartFitIcons.Activity, contentDescription = null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
 
-                // space under the (+)
-                Spacer(Modifier.width(60.dp))
+                // 中间空出 FAB 区
+                Spacer(Modifier.width(56.dp))
 
+                // 右边两个：Tips + Profile
                 BarItem(
                     label = "Tips",
                     selected = current.isSelected<Dest.Tips>(),
                     onClick = { navController.navigateSingleTopTo(Dest.Tips) },
-                    icon = { Icon(Icons.Default.Lightbulb, null) },
+                    icon = { Icon(SmartFitIcons.Tips, contentDescription = null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
+
                 BarItem(
                     label = "Profile",
                     selected = current.isSelected<Dest.Profile>(),
                     onClick = { navController.navigateSingleTopTo(Dest.Profile) },
-                    icon = { Icon(Icons.Default.Person, null) },
+                    icon = { Icon(SmartFitIcons.Profile, contentDescription = null) },
                     accent = accent,
                     modifier = Modifier.weight(1f)
                 )
             }
         }
 
-        // soft glow (notch illusion)
+        // 中间 FAB 背后的柔光圈
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 10.dp)
-                .size(50.dp)
+                .offset(y = 6.dp)
+                .size(64.dp)
                 .clip(CircleShape)
-                .background(accent.copy(alpha = 0.16f))
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.55f),
+                            Color.Transparent
+                        )
+                    )
+                )
                 .blur(18.dp)
         )
 
-        // Center (+) with ring
+        // 外圈玻璃圆环
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 10.dp)
-                .size(52.dp)
+                .offset(y = 6.dp)
+                .size(58.dp)
                 .clip(CircleShape)
-                .border(BorderStroke(2.dp, MaterialTheme.colorScheme.outline), CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
+                .border(
+                    BorderStroke(2.dp, colorScheme.outline.copy(alpha = 0.6f)),
+                    CircleShape
+                )
+                .background(colorScheme.surface.copy(alpha = 0.96f)),
             contentAlignment = Alignment.Center
         ) {
+            // 真正的 FAB（渐变 + 大号 +）
             FloatingActionButton(
                 onClick = onFabClick,
-                containerColor = accent,
-                contentColor = Color.Black,
                 shape = CircleShape,
-                modifier = Modifier.size(50.dp),
+                containerColor = Color.Transparent,
+                contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(
                     defaultElevation = 0.dp,
                     pressedElevation = 0.dp,
                     focusedElevation = 0.dp,
                     hoveredElevation = 0.dp
-                )
+                ),
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(
+                                accent,
+                                colorScheme.secondary
+                            )
+                        ),
+                        shape = CircleShape
+                    )
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add", modifier = Modifier.size(28.dp))
+                Icon(
+                    imageVector = SmartFitIcons.Add,
+                    contentDescription = "Add log",
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
@@ -154,25 +210,43 @@ private fun BarItem(
     accent: Color,
     modifier: Modifier = Modifier
 ) {
-    val tint = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+    val colorScheme = MaterialTheme.colorScheme
+
+    val bgColor = if (selected)
+        accent.copy(alpha = 0.16f)          // 图标后面一坨淡 lime 背景
+    else
+        Color.Transparent
+
+    val iconTint =
+        if (selected) accent
+        else colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+
+    val textTint =
+        if (selected) accent
+        else colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bgColor)           // ⬅️ 选中底色
             .clickable(onClick = onClick)
-            .padding(top = 10.dp, bottom = 8.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        CompositionLocalProvider(LocalContentColor provides tint) { icon() }
+        CompositionLocalProvider(LocalContentColor provides iconTint) {
+            icon()
+        }
         Text(
-            label,
-            fontSize = 12.sp,
-            color = tint,
+            text = label,
+            fontSize = 11.sp,
+            color = textTint,
             maxLines = 1,
             overflow = TextOverflow.Clip
         )
     }
 }
 
-/* -------- type-safe helpers -------- */
+/* -------- type-safe helpers（跟你之前一样） -------- */
 
 private inline fun <reified T : Dest> NavDestination?.isSelected(): Boolean =
     this?.hierarchy?.any { it.hasRoute<T>() } == true

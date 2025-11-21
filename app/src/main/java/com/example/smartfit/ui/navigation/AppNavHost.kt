@@ -23,8 +23,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import com.example.smartfit.di.AppGraph
 import com.example.smartfit.ui.theme.ThemeViewModel
+import androidx.compose.material3.ExperimentalMaterial3Api      // ★
 
 
+
+
+@OptIn(ExperimentalMaterial3Api::class)                      // ★
 @Composable
 fun AppNavHost(graph: AppGraph) {
     val navController = rememberNavController()
@@ -68,23 +72,45 @@ fun AppNavHost(graph: AppGraph) {
                 it.hasRoute<Dest.Tips>() || it.hasRoute<Dest.Profile>()
     } == true
 
+    // ★ 控制 bottom sheet 显示
+    var showAddSheet by remember { mutableStateOf(false) }
+
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                PillBottomBarWithFab( // keep your existing component
+                PillBottomBarWithFab(
                     navController = navController,
-                    onFabClick = { navController.navigate(Dest.AddLog) }
+                    onFabClick = { showAddSheet = true }   // ★ 打开 bottom sheet
                 )
             }
         }
     ) { padding ->
-        NavGraphContent(
-            navController = navController,
-            graph = graph,
-            innerPadding = padding,
-            startDestination = startDest,
-            isDark = darkTheme
-        )
+        Box(Modifier.fillMaxSize()) {
+            NavGraphContent(
+                navController = navController,
+                graph = graph,
+                innerPadding = padding,
+                startDestination = startDest,
+                isDark = darkTheme
+            )
+
+            // ★ 底部弹出的 AddLog 选单
+            if (showAddSheet) {
+                AddLogBottomSheet(
+                    onDismiss = { showAddSheet = false },
+                    onAddExercise = {
+                        showAddSheet = false
+                        // TODO: 未来可以做 Dest.AddExerciseLog
+                        navController.navigate(Dest.AddLog)// future add to add exercise
+                    },
+                    onAddFood = {
+                        showAddSheet = false
+                        // TODO: 未来可以做 Dest.AddFoodLog
+                        navController.navigate(Dest.AddLog)// future add to add food
+                    }
+                )
+            }
+        }
     }
 }
 
