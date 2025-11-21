@@ -1,24 +1,41 @@
 package com.example.smartfit.ui.theme
 
 import androidx.compose.ui.graphics.Color
+// ---- 主色：更亮一点的 Lime ----
+// 我用的是 #B3FF00，比 #A5FF00 稍微亮一点，在白底上更清楚
+val LimePrimary = Color(0xFFB3FF00)
+val LimePrimarySoft = Color(0x33B3FF00) // 20% 透明，用在渐变/背景
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// ---- Light Theme ----
+val LightBackground   = Color(0xFFEFF2F5)      // 比纯白稍灰一点，衬托 lime
+val LightSurface      = Color(0xFFFFFFFF)
+val LightSurfaceGlass = Color(0xD9FFFFFF)      // 85% 白玻璃
+val LightSurfaceStrong = Color(0xFFFFFFFF)     // 比较实心的卡片可用
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val LightPrimary      = LimePrimary
+val LightPrimarySoftAlias = LimePrimarySoft
+val LightSecondary    = Color(0xFF22C55E)
+
+val LightOnBackground = Color(0xFF020617)
+val LightOnSurface    = Color(0xFF050816)
+val LightOutline      = Color(0x22020617)      // 很淡的描边
+
+// ---- Dark Theme ----
+val DarkBackground   = Color(0xFF020617)       // 深海军蓝
+val DarkSurface      = Color(0xFF020617)
+val DarkSurfaceGlass = Color(0x6615253A)       // 深色玻璃
+val DarkSurfaceStrong = Color(0xFF020617)
+
+val DarkPrimary      = LimePrimary
+val DarkPrimarySoftAlias = LimePrimarySoft
+val DarkSecondary    = Color(0xFF34D399)
+
+val DarkOnBackground = Color(0xFFE5E7EB)
+val DarkOnSurface    = Color(0xFFF9FAFB)
+val DarkOutline      = Color(0x33E5E7EB)
+
+// 其他小点缀
+val AccentRed    = Color(0xFFF97373)
+val AccentYellow = Color(0xFFFACC15)
 
 
-// Brand accent (neon lime)
-val LimeA400 = Color(0xFF97D901) // light mock
-val LimeA400_Dark = Color(0xFF97E803) // slightly dimmer for dark
-
-// Neutrals used in cards/surfaces to resemble the mock
-val Gray50   = Color(0xFFF7F7F7)
-val Gray100  = Color(0xFFF0F0F0)
-val Gray200  = Color(0xFFE6E6E6)
-val Gray700  = Color(0xFF505050)
-val Gray800  = Color(0xFF2A2A2A)
-val Gray900  = Color(0xFF161616)

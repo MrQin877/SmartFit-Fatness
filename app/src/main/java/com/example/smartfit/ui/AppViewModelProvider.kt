@@ -73,9 +73,12 @@ object AppViewModelProvider {
         }
 
         // --- Home (if you create one) ---
+        //initializer {
+        //    val graph = appGraph()
+         //   HomeViewModel(graph.activityRepo)
+        //}
         initializer {
-            val graph = appGraph()
-            HomeViewModel(graph.activityRepo)
+            HomeViewModel()
         }
     }
 }
