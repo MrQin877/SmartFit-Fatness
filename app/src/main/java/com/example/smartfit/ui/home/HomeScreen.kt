@@ -1,13 +1,15 @@
 // app/src/main/java/com/example/smartfit/ui/home/HomeScreen.kt
 package com.example.smartfit.ui.home
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.smartfit.ui.icon.SmartFitIcons
+import com.example.smartfit.ui.navigation.Dest
 import com.example.smartfit.ui.theme.*
 
 @Composable
@@ -30,14 +33,17 @@ fun HomeScreen(
     navController: NavHostController,
     contentPadding: PaddingValues
 ) {
-    val viewModel: HomeViewModel = viewModel()   // ⬅️ 无参数版，直接 viewModel()
+    val viewModel: HomeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     HomeContent(
         uiState = uiState,
         onPeriodChange = viewModel::onPeriodChange,
         onFilterChange = viewModel::onFilterChange,
-        modifier = Modifier.padding(contentPadding)
+        modifier = Modifier.padding(contentPadding),
+        onSummaryClick = {
+            navController.navigate(Dest.ActivityStats)
+        },
     )
 }
 
@@ -46,9 +52,21 @@ fun HomeContent(
     uiState: HomeUiState,
     onPeriodChange: (ActivityPeriod) -> Unit,
     onFilterChange: (ActivityFilter) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSummaryClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    // Compute filtered list once, then feed into LazyColumn.items()
+    val filteredList = remember(uiState.activities, uiState.filter) {
+        when (uiState.filter) {
+            ActivityFilter.ALL -> uiState.activities
+            ActivityFilter.EXERCISE ->
+                uiState.activities.filter { it.type == ActivityType.EXERCISE }
+            ActivityFilter.FOOD ->
+                uiState.activities.filter { it.type == ActivityType.FOOD }
+        }
+    }
+
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             colorScheme.background,
@@ -73,7 +91,8 @@ fun HomeContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    HomeTopBar() //need to merge with viewmodel for username
+                    // TODO: connect with ViewModel / DataStore for real username
+                    HomeTopBar()
                 }
 
                 item {
@@ -84,14 +103,22 @@ fun HomeContent(
                 }
 
                 item {
-                    ActivitySummaryCard(uiState.summary)
+                    ActivitySummaryCard(
+                        summary = uiState.summary,
+                        onViewDetail = onSummaryClick
+                    )
                 }
 
                 item {
-                    RecentlyActivitySection(
+                    RecentlyActivityHeader(
                         uiState = uiState,
                         onFilterChange = onFilterChange
                     )
+                }
+
+                // Section list: each activity item
+                items(filteredList) { item ->
+                    ActivityItemCard(item = item)
                 }
 
                 item {
@@ -104,7 +131,7 @@ fun HomeContent(
 
 @Composable
 private fun HomeTopBar(
-    userName: String = "John Smith",   // 以后可以从 ViewModel / DataStore 传进来
+    userName: String = "John Smith",
     onNotificationsClick: () -> Unit = {}
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -115,12 +142,11 @@ private fun HomeTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-
-        // 左边：头像 + Welcome 文案
+        // Left: avatar + welcome text
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 圆形头像（先用首字母 + 渐变背景当占位）
+            // Circular avatar placeholder: initials + gradient background
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -159,7 +185,7 @@ private fun HomeTopBar(
             }
         }
 
-        // 右边：只有通知圆按钮
+        // Right: notification icon bubble
         SmallIconBubble(
             icon = SmartFitIcons.Notifications,
             contentDescription = "Notifications",
@@ -168,14 +194,12 @@ private fun HomeTopBar(
     }
 }
 
-
 @Composable
 private fun ActivityPeriodTabs(
     current: ActivityPeriod,
     onPeriodChange: (ActivityPeriod) -> Unit
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
 
     val containerColor =
         if (isDark) DarkSurfaceGlass else LightSurfaceGlass
@@ -216,7 +240,7 @@ private fun PeriodChip(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
 
     val bgColor: Color
     val border: BorderStroke?
@@ -224,12 +248,12 @@ private fun PeriodChip(
 
     if (selected) {
         if (isDark) {
-            // DARK：亮一点的玻璃底 + 荧光边框 + 荧光文字
+            // Dark: subtle glass background + neon lime text/border
             bgColor = Color.White.copy(alpha = 0.08f)
             border = BorderStroke(1.dp, colorScheme.primary)
             textColor = colorScheme.primary
         } else {
-            // LIGHT：lime 背景 + 深色文字
+            // Light: lime background + dark text
             bgColor = colorScheme.primary.copy(alpha = 0.28f)
             border = BorderStroke(1.dp, colorScheme.primary)
             textColor = Color(0xFF020617)
@@ -261,13 +285,13 @@ private fun PeriodChip(
     }
 }
 
-
-
-
 @Composable
-private fun ActivitySummaryCard(summary: ActivitySummaryUiState) {
+private fun ActivitySummaryCard(
+    summary: ActivitySummaryUiState,
+    onViewDetail: () -> Unit
+) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
 
     val surfaceColor =
         if (isDark) colorScheme.surface.copy(alpha = 0.35f)
@@ -309,14 +333,41 @@ private fun ActivitySummaryCard(summary: ActivitySummaryUiState) {
                 )
                 .padding(20.dp)
         ) {
-            Text(
-                text = if (summary.period == ActivityPeriod.DAILY)
-                    "Today’s Summary"
-                else
-                    "This Week’s Summary",
-                style = MaterialTheme.typography.titleMedium,
-                color = colorScheme.onSurface
-            )
+            // Header: title + "View detail"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (summary.period == ActivityPeriod.DAILY)
+                        "Today’s Summary"
+                    else
+                        "This Week’s Summary",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colorScheme.onSurface
+                )
+
+                TextButton(
+                    onClick = onViewDetail,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = "View detail",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isDark) {
+                            colorScheme.primary     // high contrast in dark mode
+                        } else {
+                            Color(0xFF5A9D09)      // slightly darker green in light mode
+                        }
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -341,8 +392,6 @@ private fun ActivitySummaryCard(summary: ActivitySummaryUiState) {
     }
 }
 
-
-
 @Composable
 private fun SummaryItem(
     label: String,
@@ -365,12 +414,13 @@ private fun SummaryItem(
 }
 
 @Composable
-private fun RecentlyActivitySection(
+private fun RecentlyActivityHeader(
     uiState: HomeUiState,
     onFilterChange: (ActivityFilter) -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
+
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -380,16 +430,16 @@ private fun RecentlyActivitySection(
             Text(
                 text = "Recently Activity",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = colorScheme.onBackground
             )
             TextButton(onClick = { /* TODO: navigate to all activities */ }) {
                 Text(
                     text = "View All",
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isDark) {
-                        colorScheme.primary             // dark: 用荧光绿，高对比
+                        colorScheme.primary
                     } else {
-                        Color(0xFF16A34A)              // light: 用较深的绿，更明显
+                        Color(0xFF5A9D09)
                     }
                 )
             }
@@ -403,27 +453,10 @@ private fun RecentlyActivitySection(
         )
 
         Spacer(Modifier.height(12.dp))
-
-        val filteredList = remember(uiState.activities, uiState.filter) {
-            when (uiState.filter) {
-                ActivityFilter.ALL -> uiState.activities
-                ActivityFilter.EXERCISE ->
-                    uiState.activities.filter { it.type == ActivityType.EXERCISE }
-                ActivityFilter.FOOD ->
-                    uiState.activities.filter { it.type == ActivityType.FOOD }
-            }
-        }
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            filteredList.forEach { item ->
-                ActivityItemCard(item = item)
-            }
-        }
     }
 }
+
+
 
 
 @Composable
@@ -431,8 +464,7 @@ private fun FilterSegment(
     current: ActivityFilter,
     onFilterChange: (ActivityFilter) -> Unit
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
     val containerColor =
         if (isDark) DarkSurfaceGlass else LightSurfaceGlass
 
@@ -476,12 +508,13 @@ private fun FilterChip(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
+
     Surface(
         onClick = onClick,
         modifier = modifier.height(32.dp),
         shape = RoundedCornerShape(999.dp),
         color = if (selected)
-            colorScheme.primary.copy(alpha = 0.60f)   // ⬅ 原本 0.15 太淡
+            colorScheme.primary.copy(alpha = 0.60f)
         else
             Color.Transparent
     ) {
@@ -493,7 +526,7 @@ private fun FilterChip(
                 text = text,
                 style = MaterialTheme.typography.labelMedium,
                 color = if (selected)
-                    Color(0xFF020617)                  // 选中时字体用深色，特别是 light mode
+                    Color(0xFF020617)      // dark text when selected (better in light mode)
                 else
                     colorScheme.onSurface.copy(alpha = 0.7f),
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
@@ -502,11 +535,11 @@ private fun FilterChip(
     }
 }
 
-
 @Composable
 private fun ActivityItemCard(item: ActivityItemUiState) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
+
     val surfaceColor =
         if (isDark) colorScheme.surface.copy(alpha = 0.45f)
         else Color.White.copy(alpha = 0.96f)
@@ -563,12 +596,10 @@ private fun ActivityItemCard(item: ActivityItemUiState) {
     }
 }
 
-
-
 @Composable
 private fun IconBubble(item: ActivityItemUiState) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
 
     val icon = when (item.icon) {
         ActivityIcon.RUNNING -> SmartFitIcons.Running
@@ -579,7 +610,7 @@ private fun IconBubble(item: ActivityItemUiState) {
 
     val iconBgGradient = when (item.type) {
         ActivityType.EXERCISE -> Brush.linearGradient(
-            listOf(LimePrimarySoft, LimePrimary)   // 你主题里的亮绿
+            listOf(LimePrimarySoft, LimePrimary)
         )
         ActivityType.FOOD -> Brush.linearGradient(
             listOf(AccentYellow.copy(alpha = 0.2f), AccentYellow)
@@ -587,9 +618,9 @@ private fun IconBubble(item: ActivityItemUiState) {
     }
 
     val iconTint = if (isDark) {
-        Color.White                   // dark mode 继续用白色
+        Color.White                // white icons in dark mode
     } else {
-        Color(0xFF020617)             // light mode 改成接近黑色，更清楚
+        Color(0xFF020617)          // near-black icons in light mode
     }
 
     Box(
@@ -607,19 +638,19 @@ private fun IconBubble(item: ActivityItemUiState) {
     }
 }
 
-
-
 @Composable
 private fun SmartFitTipsCard(tips: String) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
+
     val surfaceColor =
         if (isDark) colorScheme.surface.copy(alpha = 0.45f)
         else Color.White.copy(alpha = 0.96f)
+
     val iconTint = if (isDark) {
-        Color.White                   // dark mode
+        Color.White
     } else {
-        Color(0xFF020617)             // light mode
+        Color(0xFF020617)
     }
 
     Surface(
@@ -686,14 +717,16 @@ private fun SmallIconBubble(
     onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.background == DarkBackground
+    val isDark = isSmartFitDarkTheme()
+
     val iconTint = if (isDark) {
-        colorScheme.primary                   // dark mode
+        colorScheme.primary            // neon lime in dark mode
     } else {
-        Color(0xFF7BB82F)             // light mode
+        Color(0xFF7BB82F)             // softer green in light mode
     }
+
     Surface(
-        onClick = onClick,                    // ← 变成 button
+        onClick = onClick,
         modifier = Modifier.size(32.dp),
         shape = CircleShape,
         color = colorScheme.surface.copy(alpha = 0.6f),
@@ -708,6 +741,3 @@ private fun SmallIconBubble(
         }
     }
 }
-
-
-

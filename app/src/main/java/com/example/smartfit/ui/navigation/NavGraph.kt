@@ -19,6 +19,7 @@ import com.example.smartfit.ui.logs.LogDetailScreen
 import com.example.smartfit.ui.logs.LogsScreen
 import com.example.smartfit.ui.profile.ProfileScreen
 import com.example.smartfit.ui.tips.TipsScreen
+import com.example.smartfit.ui.activitystats.*
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -84,5 +85,30 @@ fun NavGraphContent(
         ) {
             AddLogScreen(navController)
         }
+
+        // ✅ 新增：ActivityStats 页面
+        composable<Dest.ActivityStats> {
+            // 先用 demo 数据，之后你可以换成 ViewModel 里的 state
+            val demo = ActivityStatsUiState(
+                period = StatsPeriod.DAY,
+                dateLabel = "Today",
+                totalDurationMinutes = 54,
+                totalDistanceKm = 4.32f,
+                caloriesIntake = 1850,
+                caloriesBurned = 420,
+                distancePoints = listOf(0.1f, 0.4f, 0.7f, 0.5f, 0.9f, 0.6f),
+                caloriesBurnedPoints = listOf(120f, 180f, 160f, 220f, 210f, 190f, 230f),
+                stepsPoints = listOf(0.2f, 0.5f, 0.7f, 0.6f, 0.9f, 0.8f),
+                currentSteps = 7543,
+                goalSteps = 10000
+            )
+
+            ActivityStatsScreen(
+                uiState = demo,
+                onBackClick = { navController.popBackStack() },
+                onPeriodChange = { /* 之后接 ViewModel 切 Day/Week */ }
+            )
+        }
+
     }
 }

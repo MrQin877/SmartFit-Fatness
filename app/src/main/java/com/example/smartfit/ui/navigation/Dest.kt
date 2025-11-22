@@ -11,4 +11,5 @@ sealed interface Dest {
     @kotlinx.serialization.Serializable data object AddLog : Dest
     @kotlinx.serialization.Serializable data object Tips : Dest
     @kotlinx.serialization.Serializable data object Profile : Dest
+    @kotlinx.serialization.Serializable data object ActivityStats : Dest
 }

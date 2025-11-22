@@ -6,25 +6,48 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary      = DarkPrimary,
-    secondary    = DarkSecondary,
-    background   = DarkBackground,
-    surface      = DarkSurface,
-    onBackground = DarkOnBackground,
-    onSurface    = DarkOnSurface,
-    outline      = DarkOutline
-)
+// ---------------- Light / Dark ColorSchemes ----------------
 
 private val LightColorScheme = lightColorScheme(
-    primary      = LightPrimary,
-    secondary    = LightSecondary,
-    background   = LightBackground,
-    surface      = LightSurface,
-    onBackground = LightOnBackground,
-    onSurface    = LightOnSurface,
-    outline      = LightOutline
+    primary        = LimePrimary,
+    onPrimary      = Color(0xFF020617),
+
+    secondary      = LightSecondary,
+    onSecondary    = Color.White,
+
+    background     = LightBackground,
+    onBackground   = LightOnBackground,
+
+    surface        = LightSurface,
+    onSurface      = LightOnSurface,
+
+    surfaceVariant = LightSurfaceGlass,
+    outline        = LightOutline,
+
+    error          = AccentRed,
+    onError        = Color.White
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary        = LimePrimary,
+    onPrimary      = Color.Black,
+
+    secondary      = DarkSecondary,
+    onSecondary    = Color.Black,
+
+    background     = DarkBackground,
+    onBackground   = DarkOnBackground,
+
+    surface        = DarkSurface,
+    onSurface      = DarkOnSurface,
+
+    surfaceVariant = DarkCard,
+    outline        = DarkOutline,
+
+    error          = AccentRed,
+    onError        = Color.Black
 )
 
 @Composable
@@ -32,11 +55,21 @@ fun SmartFitTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colors = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = SmartFitTypography,
-        content = content
+        colorScheme = colors,
+        typography  = SmartFitTypography,
+        content     = content
     )
+}
+
+/**
+ * Helper to check if the current SmartFit theme is dark.
+ * Use this instead of isSystemInDarkTheme() inside composables.
+ */
+@Composable
+fun isSmartFitDarkTheme(): Boolean {
+    val colorScheme = MaterialTheme.colorScheme
+    return colorScheme.background == DarkBackground
 }
