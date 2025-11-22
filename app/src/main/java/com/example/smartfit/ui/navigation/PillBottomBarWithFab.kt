@@ -24,7 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination
@@ -34,6 +34,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.smartfit.ui.icon.SmartFitIcons
+import com.example.smartfit.ui.theme.DarkBackground
 
 @Composable
 fun PillBottomBarWithFab(
@@ -83,7 +84,7 @@ fun PillBottomBarWithFab(
             tonalElevation = 8.dp,
             border = BorderStroke(
                 1.dp,
-                colorScheme.outline.copy(alpha = 0.35f)
+                colorScheme.outline.copy(alpha = 0.15f)
             )
         ) {
             Row(
@@ -161,7 +162,7 @@ fun PillBottomBarWithFab(
                 .size(58.dp)
                 .clip(CircleShape)
                 .border(
-                    BorderStroke(2.dp, colorScheme.outline.copy(alpha = 0.6f)),
+                    BorderStroke(2.dp, colorScheme.outline.copy(alpha = 0.15f)),
                     CircleShape
                 )
                 .background(colorScheme.surface.copy(alpha = 0.96f)),
@@ -211,40 +212,65 @@ private fun BarItem(
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background == DarkBackground
 
-    val bgColor = if (selected)
-        accent.copy(alpha = 0.16f)          // 图标后面一坨淡 lime 背景
-    else
-        Color.Transparent
+    val circleBg: Color
+    val circleBorder: BorderStroke?
+    val iconTint: Color
+    val textColor: Color
 
-    val iconTint =
-        if (selected) accent
-        else colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-
-    val textTint =
-        if (selected) accent
-        else colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+    if (selected) {
+        if (isDark) {
+            circleBg    = accent.copy(alpha = 0.22f)
+            circleBorder = null
+            iconTint    = accent
+            textColor   = accent
+        } else {
+            circleBg    = accent.copy(alpha = 0.22f)          // ← 这里让它“深一点”
+            circleBorder = BorderStroke(1.dp, accent)
+            iconTint    = Color(0xFF5A9D09)
+            textColor   = Color(0xFF5A9D09)
+        }
+    } else {
+        circleBg    = Color.Transparent
+        circleBorder = null
+        iconTint    = colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        textColor   = colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(bgColor)           // ⬅️ 选中底色
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(vertical = 6.dp, horizontal = 10.dp)
     ) {
-        CompositionLocalProvider(LocalContentColor provides iconTint) {
-            icon()
+        Surface(
+            modifier = Modifier.size(28.dp),
+            shape = CircleShape,
+            color = circleBg,
+            border = circleBorder
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                CompositionLocalProvider(LocalContentColor provides iconTint) {
+                    icon()
+                }
+            }
         }
+
+        Spacer(Modifier.height(2.dp))
+
         Text(
             text = label,
             fontSize = 11.sp,
-            color = textTint,
-            maxLines = 1,
-            overflow = TextOverflow.Clip
+            color = textColor,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1
         )
     }
 }
+
+
+
 
 /* -------- type-safe helpers（跟你之前一样） -------- */
 
